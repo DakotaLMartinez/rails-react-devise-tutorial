@@ -31,6 +31,11 @@ and run `bundle install`. Then we'll do
 ```
 rails webpacker:install
 ```
+Finally, we'll want some of the configuration we get from installing webpacker for react, so let's do
+```
+rails webpacker:install:react
+```
+We'll keep all of the changes except for the hello_react component.
 
 
 ## Generate the client app with create-react-app
@@ -44,6 +49,18 @@ After this, make sure to add this to your .gitignore file at the root so the rep
 ```
 # .gitignore
 /client/node_modules
+```
+We'll also want to remove all references to serviceworker in index.js so it looks like this:
+```
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+
+
+ReactDOM.render(<App />, document.getElementById('root'));
+
+
 ```
 
 ## Configure Webpacker to Read From create-react-app
@@ -61,3 +78,34 @@ default: &default
   source_path: client
   source_entry_path: src
 ```
+
+## Add a Home Route and a Route to Mount The React App
+
+We'll generate a welcome controller with a couple of actions to handle a home page and also our react app.
+
+```
+rails g controller welcome home app --no-assets --no-helper
+```
+
+We'll set up the routes like this:
+```
+Rails.application.routes.draw do
+  get 'welcome/home'
+  get '/app', to: 'welcome#app', as: 'app'
+  # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+  root 'welcome#home'
+end
+```
+Then we'll add a link from the home view to the app view.
+```
+# app/views/welcome/home.html.erb
+<h1>Welcome#home</h1>
+<p>If you're logged in, check out <%= link_to "the app", app_path %>!</p>
+```
+Finally, we'll add the code we need to mount the react app in the app view:
+```
+# app/views/welcome/app.html.erb
+<div id="root"></div>
+<%= javascript_pack_tag 'index' %>
+```
+Now, let's check it out in the browser
