@@ -1,24 +1,35 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This README covers how to set up a Rails/React app for User authentication using Devise
 
-Things you may want to cover:
+- Set up Webpacker 
+- Generate the client app with create-react-app
+- configure webpacker to read from create-react-app
+- add a home route and a route to mount the react app
+- install devise and set up user logins
+- check for authentication before rendering the react view
+- create a posts resource and some seeds
+- add react router and a posts index that pulls the current user's posts
+- and link to a new post component
+- configure new post component to pull csrf token from view and add to headers on fetch request
 
-* Ruby version
+## My Environment
 
-* System dependencies
+Ruby Version: 2.6.1,
+Node Version: 12.1.0,
+Mac OS 10.12.6
 
-* Configuration
 
-* Database creation
+## Set up Webpacker
 
-* Database initialization
+We'll want to add webpacker to the gemfile
 
-* How to run the test suite
+```
+gem 'webpacker'
+```
+and run `bundle install`. Then we'll do 
+```
+rails webpacker:install
+```
 
-* Services (job queues, cache servers, search engines, etc.)
 
-* Deployment instructions
-
-* ...
