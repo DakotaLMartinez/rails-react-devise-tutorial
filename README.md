@@ -33,3 +33,31 @@ rails webpacker:install
 ```
 
 
+## Generate the client app with create-react-app
+
+Now we'll want to generate the client app
+
+```
+create-react-app client
+```
+After this, make sure to add this to your .gitignore file at the root so the repo doesn't have all your node_modules in client:
+```
+# .gitignore
+/client/node_modules
+```
+
+## Configure Webpacker to Read From create-react-app
+
+To get webpacker working with create-react-app, you'll want to change the first couple of lines of the default configuration in `config/webpacker.yml` from:
+```
+default: &default
+  source_path: app/javascript
+  source_entry_path: packs
+```
+
+to:
+```
+default: &default
+  source_path: client
+  source_entry_path: src
+```
