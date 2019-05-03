@@ -108,4 +108,4 @@ Finally, we'll add the code we need to mount the react app in the app view:
 <div id="root"></div>
 <%= javascript_pack_tag 'index' %>
 ```
-Now, let's check it out in the browser
+Now, let's check it out in the browser, if you click the link you should see create-react-app's landing page
