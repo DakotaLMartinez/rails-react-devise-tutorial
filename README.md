@@ -193,3 +193,23 @@ Now we can head back to the browser and try creating a new account.
 ![Login Flow](media/login-flow.gif)
 
 Now that we have users, we can work on restricting the app to only logged in users.
+
+## Check for Authentication Before Rendering the React View
+
+Now that we've got authentication up and running, let's protect our app so only logged in users can view it. The quickest way to do this is to add a redirect to the controller action that will render our react app unless a user is signed in.
+
+```
+class WelcomeController < ApplicationController
+  before_action :authenticate_user!, only: [:app]
+  def home
+  end
+
+  def app
+    
+  end
+end
+```
+
+Now if we try to click on the link to the app page in the browser, we get redirected to the login screen. After logging in, it sends us to the app.
+
+![react-app-behind-login](media/react-app-behind-login.gif)
