@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :posts
   devise_for :users
   get 'welcome/home'
   get '/app', to: 'welcome#app', as: 'app'
