@@ -8,8 +8,8 @@ This README covers how to set up a Rails/React app for User authentication using
 - [add a home route and a route to mount the react app](#add-a-home-route-and-a-route-to-mount-the-react-app)
 - [install devise and set up user logins](#install-devise-and-set-up-user-logins)
 - [check for authentication before rendering the react view](#check-for-authentication-before-rendering-the-react-view)
-- create a posts resource and some seeds
-- add react router and a posts index that pulls the current user's posts
+- [create a posts resource and some seeds](#create-a-posts-resource-and-some-seeds)
+- [add react router and a posts index that pulls the current user's posts](#add-react-router-and-a-posts-index-that-pulls-the-current-user's-posts)
 - and link to a new post component
 - configure new post component to pull csrf token from view and add to headers on fetch request
 
@@ -213,3 +213,67 @@ end
 Now if we try to click on the link to the app page in the browser, we get redirected to the login screen. After logging in, it sends us to the app.
 
 ![react-app-behind-login](media/react-app-behind-login.gif)
+
+## Create a Posts Resource and Some Seeds
+
+Next, let's create a posts resource so we can set up a couple of AJAX requests from our react front end to our rails API. 
+
+```
+rails g resource post title content:text user:references --no-assets --no-helper
+```
+
+then we can run 
+```
+rails db:migrate
+``` 
+to update our database with the posts table.
+
+We'll also want to make sure that we update the user model so it has many posts:
+
+```
+# app/models/user.rb
+class User < ApplicationRecord
+  # Include default devise modules. Others available are:
+  # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :validatable
+  has_many :posts
+end
+
+```
+
+Finally, let's add some seeds so we've got some posts to work with.
+
+```
+# db/seeds.rb
+user = User.first || User.create(email: 'test@test.com', password: 'password', password_confirmation: 'password')
+posts = [
+  {
+    title: 'My first post', 
+    content: 'The start of something special'
+  },
+  {
+    title: 'My second post', 
+    content: 'This is really getting good'
+  },
+  {
+    title: 'Oh my god, Yeah!!!',
+    content: 'Enough said.'
+  }
+]
+posts.each do |post_hash|
+  user.posts.create(post_hash)
+end
+```
+
+Then we can run those with `rails db:seed`
+
+## Add React Router and a Posts Index that Pulls the Current User's Posts
+
+To start, we'll want to cd into the client directory and add in the dependencies we'll need here.
+
+```
+cd client
+yarn add react-router-dom react-redux redux
+```
+
