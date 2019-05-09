@@ -9,6 +9,8 @@ This README covers how to set up a Rails/React app for User authentication using
 - [install devise and set up user logins](#install-devise-and-set-up-user-logins)
 - [check for authentication before rendering the react view](#check-for-authentication-before-rendering-the-react-view)
 - [create a posts resource and some seeds](#create-a-posts-resource-and-some-seeds)
+- [create a namespace for our API](#create-a-namespace-for-our-api)
+- [add an index action to display the current user's posts if authenticated](#add-an-index-action-to-display-the-current-user's-posts-if-authenticated)
 - [add react router and a posts index that pulls the current user's posts](#add-react-router-and-a-posts-index-that-pulls-the-current-user's-posts)
 - and link to a new post component
 - configure new post component to pull csrf token from view and add to headers on fetch request
@@ -117,7 +119,11 @@ Finally, we'll add the code we need to mount the react app in the app view:
 <div id="root"></div>
 <%= javascript_pack_tag 'index' %>
 ```
-Now, let's check it out in the browser, if you click the link you should see create-react-app's landing page
+Now, let's check it out in the browser, if you click the link you should see create-react-app's landing page. **Note**: We'll get much better performance here if we're running the webpack dev server, which you can do by running 
+```
+./bin/webpack-dev-server
+```
+in a spare terminal. This is what you should see at that point:
 
 ![home-to-app-link](media/home-to-app-link.gif)
 
@@ -268,12 +274,194 @@ end
 
 Then we can run those with `rails db:seed`
 
+## Create a namespace for our API
+
+One thing we probably want to do at this point as well is to create a namespace for our api and make sure that the PostsController falls within it. This is a little extra work now and has the potential to save us large headaches down the road. For more info about why this is a good idea to do now, check out this [article on API versioning](https://paweljw.github.io/2017/07/rails-5.1-api-app-part-3-api-versioning/).  
+
+Practically, a few things will need to change, first the routes will be namespaced, next the controller directory structure will change, and finally the way we define the controller class will be slightly different as well.
+
+First, let's look at the routes:
+```
+  # config/routes.rb 
+  # ..
+  namespace :api do 
+    namespace :v1 do 
+      resources :posts
+    end 
+  end
+```
+
+Now the directory structure for the controllers:
+
+```
+app/controllers
+├── api
+│   └── v1
+│       └── posts_controller.rb
+├── concerns
+├── application_controller.rb
+└── welcome_controller.rb
+```
+And then update the controller to be defined under the namespaced modules.
+
+```
+module Api 
+  module V1
+    class PostsController < ApplicationController
+    end
+  end 
+end
+
+```
+
+Now if we run `rails routes` we can see what that does for us
+
+```
+          Prefix  Verb   URI Pattern                      Controller#Action
+    api_v1_posts  GET    /api/v1/posts(.:format)          api/v1/posts#index
+                  POST   /api/v1/posts(.:format)          api/v1/posts#create
+ new_api_v1_post  GET    /api/v1/posts/new(.:format)      api/v1/posts#new
+edit_api_v1_post  GET    /api/v1/posts/:id/edit(.:format) api/v1/posts#edit
+     api_v1_post  GET    /api/v1/posts/:id(.:format)      api/v1/posts#show
+                  PATCH  /api/v1/posts/:id(.:format)      api/v1/posts#update
+                  PUT    /api/v1/posts/:id(.:format)      api/v1/posts#update
+                  DELETE /api/v1/posts/:id(.:format)      api/v1/posts#destroy
+```
+
+## Add an Index Action to Display the Current User's Posts if Authenticated
+
+Now, let's create an index PostsController that returns the current user's posts if we're authenticated and renders an empty response with a 401 status code if not.
+
+```
+# app/controllers/api/v1/posts_controller.rb
+module Api 
+  module V1
+    class PostsController < ApplicationController
+      def index 
+        if user_signed_in?
+          render json: current_user.posts
+        else
+          render json: {}, status: 401
+        end 
+      end
+    end
+  end 
+end
+```
+
+After we've got this endpoint stubbed out, we'll be able to use it from our react front-end.
+
 ## Add React Router and a Posts Index that Pulls the Current User's Posts
 
-To start, we'll want to cd into the client directory and add in the dependencies we'll need here.
+To start, we'll want to cd into the client directory and add in the dependencies we'll need here. (We're not using redux here yet, but we will eventually so might as well pull it in now).
 
 ```
 cd client
 yarn add react-router-dom react-redux redux
 ```
 
+After that we'll want to create the `PostList` component `client/src/components/PostList.jsx`. This component will make a fetch request within `componentDidMount` and update the state of the component when the promise is fulfilled. 
+
+```
+componentDidMount() {
+  fetch('/api/v1/posts')
+    .then(posts => posts.json())
+    .then(posts => {
+      this.setState({
+        posts: posts
+      })
+    })
+}
+```
+
+Next, we'll use a renderPosts method to return the html for the posts that we'll render to the DOM.
+
+```
+renderPosts = () => {
+  return this.state.posts.map(post => {
+    return (
+      <div key={post.id}>
+        {post.title} - {post.content}
+      </div>
+    )
+  })
+}
+```
+
+Finally, we'll render the list as well as a link to the new posts route which we'll build out in a minute. When we're done it should look something like this:
+
+```
+// client/src/components/PostList.jsx
+import React, { Component }               from 'react'
+import { Link }                           from 'react-router-dom'
+
+class PostList extends Component {
+
+  state = {
+    posts: []
+  }
+
+  componentDidMount() {
+    fetch('/api/v1/posts')
+      .then(posts => posts.json())
+      .then(posts => {
+        this.setState({
+          posts: posts
+        })
+      })
+  }
+
+  renderPosts = () => {
+    return this.state.posts.map(post => {
+      return (
+        <div key={post.id}>
+          {post.title} - {post.content}
+        </div>
+      )
+    })
+  }
+
+  render() {
+    return (
+      <div>
+        PostList Component
+        {this.renderPosts()}
+        <Link to="/posts/new">Add a New Post</Link>
+      </div>
+    )
+  }
+}
+
+export default PostList
+```
+
+In order to test this out, we'll need to add react router to the `client/src/App.js` and configure the root route to point to our `PostList` component. In this case we'll also want to use the `HashRouter` instead of the `BrowserRouter` so that we'll be able to easily integrate our rails routes with our client side routing in a way that still allows for page refreshes and inbound links to work properly.
+
+```
+// client/src/App.js
+import React from 'react';
+import {
+  HashRouter as Router, 
+  Route
+} from 'react-router-dom';
+import PostList from './components/PostList';
+import './App.css';
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Route exact path="/" component={PostList} />
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+```
+
+Now that we've got these changes into our react code, let's make sure that we've still got `./bin/webpack-dev-server` running and check out our app in the browser!
+
+![Post List Component](media/post-list-component.gif)
+
+Notice that the url when the app is loaded is now `localhost/3000/app#/`. All of the react routes are mounted after the `#` so we'll be able refresh the page at any of our react routes and the rails router will render our SPA with the react router picking up the client side routing after the `#`.
