@@ -1,21 +1,28 @@
-# README
+# Rails-React-Devise Tutorial
 
-This README covers how to set up a Rails/React app for User authentication using Devise
+This tutorial covers how to set up a Rails/React app for User authentication using Devise. It will cover the following tasks:
 
 - [Set up Webpacker](#set-up-webpacker)
 - [Generate the client app with create-react-app](#generate-the-client-app-with-create-react-app)
-- [configure webpacker to read from create-react-app](#configure-webpacker-to-read-from-create-react-app)
-- [add a home route and a route to mount the react app](#add-a-home-route-and-a-route-to-mount-the-react-app)
-- [install devise and set up user logins](#install-devise-and-set-up-user-logins)
-- [check for authentication before rendering the react view](#check-for-authentication-before-rendering-the-react-view)
-- [create a posts resource and some seeds](#create-a-posts-resource-and-some-seeds)
-- [create a namespace for our API](#create-a-namespace-for-our-api)
-- [add an index action to display the current user's posts if authenticated](#add-an-index-action-to-display-the-current-user's-posts-if-authenticated)
-- [add react router and a posts index that pulls the current user's posts](#add-react-router-and-a-posts-index-that-pulls-the-current-user's-posts)
-- [add the new post component and the create action in the rails controller](#add-the-new-post-component-and-the-create-action-in-the-rails-controller)
-- [configure the new post component to pull csrf token from view and add to headers on fetch request](#configure-the-new-post-component-to-pullcsrf-token-from-view-and-add-to-headers-on-fetch-request)
+- [Configure webpacker to read from create-react-app](#configure-webpacker-to-read-from-create-react-app)
+- [Add a home route and a route to mount the react app](#add-a-home-route-and-a-route-to-mount-the-react-app)
+- [Install devise and set up user logins](#install-devise-and-set-up-user-logins)
+- [Check for authentication before rendering the react view](#check-for-authentication-before-rendering-the-react-view)
+- [Create a posts resource and some seeds](#create-a-posts-resource-and-some-seeds)
+- [Create a namespace for our API](#create-a-namespace-for-our-api)
+- [Add an index action to display the current user's posts if authenticated](#add-an-index-action-to-display-the-current-user's-posts-if-authenticated)
+- [Add react router and a posts index that pulls the current user's posts](#add-react-router-and-a-posts-index-that-pulls-the-current-user's-posts)
+- [Add the new post component and the create action in the rails controller](#add-the-new-post-component-and-the-create-action-in-the-rails-controller)
+- [Configure the new post component to pull csrf token from view and add to headers on fetch request](#configure-the-new-post-component-to-pullcsrf-token-from-view-and-add-to-headers-on-fetch-request)
 
-### My Environment
+### 2 ways to use this repository 
+
+1. Follow along with the tutorial starting with a new rails app.
+2. Clone it and play around with and extend it.
+
+If you choose the second route, here's what you'll need to do to get started.
+
+#### My Environment
 
 Ruby Version: 2.6.1
 
@@ -23,13 +30,30 @@ Rails Version: 5.2.3
 
 Node Version: 12.1.0
 
+Yarn Version: 1.15.2
+
 OS: Mac OS 10.12.6
 
 Text Editor: Visual Studio Code
 
+#### Local set up instructions
+
+  - `git clone git@github.com:DakotaLMartinez/rails-react-devise-tutorial.git`
+  - `cd rails-react-devise-tutorial`
+  - `yarn install`
+  - `rails db:migrate`
+  - (optional) `rails db:seed`
+  - `cd client`
+  - `yarn install`
+  - `cd ..`
+  - `rails s`
+  - (in new terminal) `./bin/webpack-dev-server`
+  
+You should now be able to navigate the site at localhost:3000, log in/log out/sign up and view the react app with the working Post index and Post New routes protected behind a login.
+
 ### Tips before we start
 
-When you finish one of each step, it's a good idea to make a commit, that way you can see in your version control which files are being added/modified in each step. (In VS Code, I see this in the source control view within the left hand menu bar.)
+If you're following along with this tutorial in your own repo, then when you finish one of the steps, it's a good idea to make a commit, that way you can see in your version control which files are being added/modified in each step. (In VS Code, I see this in the source control view within the left hand menu bar.)
 
 ## Set up Webpacker
 
