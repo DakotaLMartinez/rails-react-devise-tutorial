@@ -4,6 +4,7 @@ import {
   Route
 } from 'react-router-dom';
 import PostList from './components/PostList';
+import NewPost from './components/NewPost';
 import './App.css';
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
     <Router>
       <div className="App">
         <Route exact path="/" component={PostList} />
+        <Route exact path="/posts/new" component={NewPost} />
       </div>
     </Router>
   );

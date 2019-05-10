@@ -12,8 +12,8 @@ This README covers how to set up a Rails/React app for User authentication using
 - [create a namespace for our API](#create-a-namespace-for-our-api)
 - [add an index action to display the current user's posts if authenticated](#add-an-index-action-to-display-the-current-user's-posts-if-authenticated)
 - [add react router and a posts index that pulls the current user's posts](#add-react-router-and-a-posts-index-that-pulls-the-current-user's-posts)
-- and link to a new post component
-- configure new post component to pull csrf token from view and add to headers on fetch request
+- [add the new post component and the create action in the rails controller](#add-the-new-post-component-and-the-create-action-in-the-rails-controller)
+- [configure the new post component to pull csrf token from view and add to headers on fetch request](#configure-the-new-post-component-to-pullcsrf-token-from-view-and-add-to-headers-on-fetch-request)
 
 ### My Environment
 
@@ -464,4 +464,194 @@ Now that we've got these changes into our react code, let's make sure that we've
 
 ![Post List Component](media/post-list-component.gif)
 
-Notice that the url when the app is loaded is now `localhost/3000/app#/`. All of the react routes are mounted after the `#` so we'll be able refresh the page at any of our react routes and the rails router will render our SPA with the react router picking up the client side routing after the `#`.
+Notice that the url when the app is loaded is now `localhost:3000/app#/`. All of the react routes are mounted after the `#` so we'll be able refresh the page at any of our react routes and the rails router will render our SPA with the react router picking up the client side routing after the `#`.
+
+## Add the New Post Component and the Create Action in the Rails Controller
+
+Now we want to allow users to create new posts. We've already got react router set up, so we'll need to add the `NewPost` component and then have it post to `api/v1/posts` for which we'll build a `create` action in our `PostsController`. 
+
+Let's start by building out the controller layer. We'll need to define our strong parameters to whitelist the `:title` and `:content` attributes. 
+
+```
+# app/controllers/api/v1/posts_controller.rb
+# ...
+def post_params 
+  params.require(:post).permit(:title, :content)
+end
+```
+Next, we'll again check if the user is authenticated before creating the post and returning it in json format.
+
+```
+# app/controllers/api/v1/posts_controller.rb
+# ...
+def create 
+  if user_signed_in? 
+    if post = current_user.posts.create(post_params)
+      render json: post, status: :created 
+    else 
+      render json: post.errors, status: 400
+    end
+  else 
+    render json: {}, status: 401
+  end
+end
+```
+
+For good measure, let's actually create a reason that the creation could fail by adding presence validations for title and content to our `Post` model:
+
+```
+# app/models/post.rb
+class Post < ApplicationRecord
+  belongs_to :user
+  validates :title, :content, presence: true
+end
+```
+
+Next, we'll focus back on the front end. First we'll create a `NewPost` component that will have `title` and `content` fields whose values are stored in state. We'll also add a `handleChange` method that will turn the inputs into controlled inputs.
+
+```
+# client/components/NewPost.jsx
+import React, { Component }               from 'react';
+
+class NewPost extends Component {
+
+  state = {
+    title: '',
+    content: ''
+  }
+
+  handleChange = e => {
+    let newValue = e.target.value;
+    let key = e.target.name;
+    this.setState({
+      [key]: newValue
+    });
+  }
+
+  render() {
+    return (
+      <form>
+        <p>
+          <label htmlFor="title">Title: </label>
+          <input type="text" name="title" onChange={this.handleChange} />
+        </p>
+        <p>
+          <label htmlFor="content">Content: </label>
+          <textarea name="content" id="" cols="30" rows="10" onChange={this.handleChange}></textarea>
+        </p>
+        <input type="submit" value="Create Post" />
+      </form>
+    )
+  }
+}
+
+export default NewPost
+```
+
+## Configure the New Post Component to Pull CSRF Token from View and Add to Headers on Fetch Request
+
+Finally, we'll need to add an event handler to handle the form submission. To do this we've got to do a couple of things to make this work. First, we'll prevent the default behavior on submission to stop a page refresh, next we'll also have to accomodate the cross site request forgery (CSRF) security measures that rails ships with. If we just send the fetch request without including a CSRF token created by the rails backend, Rails will raise an exception. To grab this token, we'll need to read it from the meta tags in the dom
+
+```
+let token = document.querySelector('meta[name="csrf-token"]').content;
+```
+After that, we'll include the token in the headers of the fetch request. We'll then parse the response as JSON and use `this.props.history.push` from react-router to send the user back to the `PostList` comopnent home view.
+
+```
+// client/src/components/NewPost.jsx
+// ...
+
+handleSubmit = (e) => {
+  e.preventDefault();
+  let data = {post: this.state};
+  let token = document.querySelector('meta[name="csrf-token"]').content;
+  fetch('/api/v1/posts', {
+    method: 'POST',
+    headers: {
+      "Content-Type": "application/json",
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-Token': token
+    },
+    redirect: "error",
+    body: JSON.stringify(data)
+  })
+    .then(resp => {
+      resp.json()
+    })
+    .then(post => {
+      this.props.history.push('/');
+    });
+}
+```
+
+And finally, we'd add the submit event handler to the rendered form:
+
+```
+// client/src/components/NewPost.jsx
+// ...
+render() {
+  return (
+    <form onSubmit={this.handleSubmit.bind(this)}>
+      <p>
+        <label htmlFor="title">Title: </label>
+        <input type="text" name="title" onChange={this.handleChange} />
+      </p>
+      <p>
+        <label htmlFor="content">Content: </label>
+        <textarea name="content" id="" cols="30" rows="10" onChange={this.handleChange}></textarea>
+      </p>
+      <input type="submit" value="Create Post" />
+    </form>
+  )
+}
+```
+
+Finally, so that we can actually get to the form, we need to hook this component up to our React router in App.js.
+
+We'll need to import it
+```
+import NewPost from './components/NewPost';
+```
+
+and then add the route:
+
+```
+<Route exact path="/posts/new" component={NewPost} />
+```
+
+When we're done it should look like this:
+
+```
+// client/src/App.js
+import React from 'react';
+import {
+  HashRouter as Router, 
+  Route
+} from 'react-router-dom';
+import PostList from './components/PostList';
+import NewPost from './components/NewPost';
+import './App.css';
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Route exact path="/" component={PostList} />
+        <Route exact path="/posts/new" component={NewPost} />
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+```
+
+Now we're ready to try this out! Let's fire up our rails server and our webpack dev server if they're not already running and click through the form.
+
+![New Post Component Form Submission](media/new-post-component-submission.gif)
+
+## Wrapping Up
+
+Great job getting through this tutorial!  Hopefully this gives you an idea of how you could create a react app that takes advantage of user accounts using session cookies. Before I leave you here, I just wanted to discuss some potential trade offs with this approach and alternatives you might also consider.
+
+Using cookie based authentication is fine if you're planning on only interacting with this API from your current react app within Rails, and not say from a mobile application or another web application. The reason for this is that cookies are domain specific, so if you need to enable access to your API from other domains, you'll want to take another approach like JWT or OAuth2 for authentication. 
