@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "fstream": "^1.0.12",
-    "lodash": "^4.17.13",
+    "lodash": "^4.17.21",
     "lodash.template": "^4.5.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
